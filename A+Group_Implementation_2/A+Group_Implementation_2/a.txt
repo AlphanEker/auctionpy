@@ -1,0 +1,26 @@
+
+1001	Ece	Bat	ece12	2001-08-08
+1002	Naz	Calk	naz12	2001-05-04
+1003	Ahmet	Gec	ahmet12	2001-03-06
+1004	Arda	Kas	arda12	2001-02-16
+1005	Derin	Goz	derin12	2002-08-12
+1006	Mahmut	Soz	mahmut34	1968-05-20
+1007	Soda	Calki	soda12	1992-08-26
+1008	Kedi	Gozu	kedi12	1995-03-21
+1009	Yakamoz	Batt	yakamoz12	1997-01-12
+1010	Ruzgar	Kas	ruzgar31	2000-12-02
+1011	Ayse	Yilmaz	ayse31	1975-02-11
+1012	Zeynep	Koc	zey69	1984-04-15
+1013	Nazim	Ayben	nazim69	1975-09-30
+1014	Omer	Fidan	fidanlik69	1978-11-28
+1015	Tuna	Bulut	tuna12	2002-05-07
+
+
+[sg.Text('ID (Should Be Unique):',size =(16,1)), sg.Input(size=(20,1), key=     'id')],
+[sg.Text('Category:', size =(16,1)), sg.Input(size=(20,1), key=                 'category')],
+[sg.Text('Title:', size =(16,1)), sg.Input(size=(20,1), key=                    'title')],
+[sg.Text('Description:', size =(16,1)), sg.Input(size=(20,4), key=              'description')],
+[sg.Text('Start Price:', size =(16,1)), sg.Input(size=(20,1), key=              'start_price')],
+[sg.Text('Buy Now Price:', size =(16,1)), sg.Input(size=(20,1), key=            'buy_now_price')],
+[sg.Text('Start Date:', size =(16,1)), sg.Input(size=(20,1), key=               'start_date')],
+[sg.Text('End Date:', size =(16,1)), sg.Input(size=(20,1), key=             'end_date')]

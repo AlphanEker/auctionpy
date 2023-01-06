@@ -131,7 +131,7 @@ def button_login(values):
         
         if row is None:
             sg.popup('SSN or password is wrong!')
-        else:
+        elif login_user_role == "SELLER":
             login_user_id = ssn
             login_user_name = row[2]
             login_user_surname = row[3]
@@ -140,9 +140,127 @@ def button_login(values):
             window.close()
             window = seller_homepage()
 
+        elif login_user_role == "ADMIN":
+            login_user_id = ssn
+            login_user_name = row[2]
+            login_user_surname = row[3]
+            
+            sg.popup('Welcome, ' + str(login_user_name) + ' ' + str(login_user_surname) )
+            window.close()
+            window = admin_homepage()       
+
+        elif login_user_role == "BUYER":
+            login_user_id = ssn
+            login_user_name = row[2]
+            login_user_surname = row[3]
+            
+            sg.popup('Welcome, ' + str(login_user_name) + ' ' + str(login_user_surname) )
+            window.close()
+            window = admin_homepage()  
+###UPDATE USER###
+def window_user_update():
+    layout = [[sg.Text('Please enter your new information.')],
+            [sg.Text('Password:', size =(10,1)), sg.Input(size=(10,1), key='new_password'), sg.Button('Update New Password')],
+            [sg.Text('IBAN:', size =(10,1)), sg.Input(size=(10,1), key='new_iban'), sg.Button('Update New IBAN'),],
+            [sg.Button('Login'),sg.Button('Return to Main Window')]]
+
+    return sg.Window("User Update Window", layout)
+ 
+def button_update_password(values):
+    global login_user_role
+    global login_user_id
+    sql = """UPDATE """+login_user_role+"""
+   SET PASSWORD = ?
+ WHERE SSN = ?;"""
+    data = (str(values['new_password']), int(login_user_id))
+    cur.execute(sql, data)
+
+def button_update_iban(values):
+    global login_user_role
+    global login_user_id
+    sql = """UPDATE """+login_user_role+"""
+   SET IBAN = ?
+ WHERE SSN = ?;"""
+    data = (str(values['new_iban']), int(login_user_id))
+    cur.execute(sql, data)
+
+
+
+###ADMIN WINDOWNS & BUTTONS###
+def admin_homepage():
+    layout = [[sg.Text('Welcome ' + login_user_name+ " " + login_user_surname)],
+              [sg.Button('Auctions To Accept')],
+              [sg.Button('Logout')]]
+    return sg.Window('Admin Homepage', layout)
+
+def admin_auctions_to_accept_window():
+    global login_user_name
+    global login_user_surname
+    global login_user_id
+    global aucList
+
+    layout = [[sg.Text("AUCTIONS AWAITING APPROVAL:")],
+        [sg.Text('All Auctions:')]]   
+
+    sql = """SELECT ID,
+       SSN,
+       IS_ACCEPTED,
+       WHO_ACCEPTED,
+       START_DATE,
+       END_DATE,
+       TITLE,
+       DESCRIPTION,
+       STATUS,
+       START_PRICE,
+       CURRENT_PRICE,
+       BIDDER_SSN,
+       BUY_NOW_PRICE,
+       CATEGORY,
+       IS_FINISHED,
+       IS_RESPONDED
+  FROM AUCTIONS
+  WHERE IS_ACCEPTED = 0
+  AND IS_RESPONDED = 0;""" 
+    row = cur.execute(sql)
+    allList = row.fetchall()
+    if allList is not None:
+        for auc in allList:
+            layout.append([sg.Text("id: "+ str(auc[0])),sg.Text("title: "+ auc[6]),sg.Text("Description: "+ auc[7]),sg.Text("Accept=>"),sg.Button(str(auc[0]), key= 'Accept Auction'),sg.Text("Deny=>"),sg.Button(str(auc[0]), key= 'Deny Auction')])
+    
+    layout.append([sg.Button('Return to Admin Homepage')])
+    return sg.Window("Auction response", layout)
+
+def button_accept_auction(idOfAuc):
+    global window
+    global login_user_id
+    global login_user_name
+    sql = """UPDATE AUCTIONS
+   SET IS_ACCEPTED = 1,
+       IS_RESPONDED = 1,
+       WHO_ACCEPTED = ?
+ WHERE ID = ?;"""
+    data = (str(login_user_name), int(idOfAuc))
+    cur.execute(sql, data)
+    window.close()
+    window = admin_auctions_to_accept_window()
+
+def button_deny_auction(idOfAuc):
+    global window
+    global login_user_id
+    global login_user_name
+    sql = """UPDATE AUCTIONS
+   SET IS_ACCEPTED = 0,
+       IS_RESPONDED = 1,
+       WHO_ACCEPTED = ?
+ WHERE ID = ?;"""
+    data = (str(login_user_name), int(idOfAuc))
+    cur.execute(sql, data)
+    window.close()
+    window = admin_auctions_to_accept_window()
+
 ###SELLER WINDOWS & BUTTONS###
 def seller_homepage():
-    layout = [[sg.Text('Welcome ' + login_user_name + login_user_surname)],
+    layout = [[sg.Text('Welcome ' + login_user_name + " " + login_user_surname)],
               [sg.Button('My Auctions')], #done
               [sg.Button('Update My Profile')],
               [sg.Button('Logout')]]
@@ -150,12 +268,12 @@ def seller_homepage():
 
 def seller_my_auction_window():
     layout = [[sg.Text('Welcome ' + login_user_name + login_user_surname)],
-              [sg.Button('Finished Auctions')],
-              [sg.Button('Ongoing Auctions')],
-              [sg.Button('Rejected Auctions')],
+              [sg.Button('Finished Auctions Page')],
+              [sg.Button('Ongoing Auctions Page')],
+              [sg.Button('Rejected Auctions Page')],
               [sg.Button('Create Auction Page')], #done
-              [sg.Button('Delete Auction Page')],
-              [sg.Button('Return to Seller Homepage')]]
+              [sg.Button('Delete Auction Page')], #done
+              [sg.Button('Return to Seller Homepage')]] #done
 
     return sg.Window('Seller My Auctions', layout)
 
@@ -187,7 +305,7 @@ def button_create_auction(values):
         sg.popup("bad creditientials!") 
         return  
 
-    data = (int(values['id']), int(login_user_id), False, "Not Determined", values['start_date'], values['end_date'], values['title'], values['description'],"Not Determined",int(values['start_price']),0 , -1, int(values['buy_now_price']),values['category'],False)
+    data = (int(values['id']), int(login_user_id), False, "Not Determined", values['start_date'], values['end_date'], values['title'], values['description'],"Not Determined",int(values['start_price']),0 , -1, int(values['buy_now_price']),values['category'],False,False)
     sql = """INSERT OR IGNORE INTO AUCTIONS (
                          ID,
                          SSN,
@@ -203,9 +321,11 @@ def button_create_auction(values):
                          BIDDER_SSN,
                          BUY_NOW_PRICE,
                          CATEGORY,
-                         IS_FINISHED
+                         IS_FINISHED,
+                         IS_RESPONDED
                      )
                      VALUES (
+                         ?,
                          ?,
                          ?,
                          ?,
@@ -232,7 +352,7 @@ def seller_delete_auction_window():
     global aucList
 
     layout = [[sg.Text(login_user_name + "  " + login_user_surname + "'s auctions")],
-        [sg.Text('All Auctions IDs:')]]   
+        [sg.Text('All Auctions:')]]   
 
     sql = """SELECT ID,
        SSN,
@@ -248,28 +368,213 @@ def seller_delete_auction_window():
        BIDDER_SSN,
        BUY_NOW_PRICE,
        CATEGORY,
-       IS_FINISHED
+       IS_FINISHED,
+       IS_RESPONDED
   FROM AUCTIONS
-  WHERE SSN = ?;""" 
+  WHERE SSN = ?
+  AND IS_ACCEPTED = 1
+  AND IS_FINISHED = 0
+  AND IS_RESPONDED = 1;""" 
     data = (int(login_user_id),)
     row = cur.execute(sql, data)
     allList = row.fetchall()
-    a = []
-    for auc in allList:
-        a.append(auc[0])  
-    layout.append([sg.Listbox(a, enable_events=True, size=(3,5), key='auction_to_delete',)])
-    layout.append([sg.Button('Delete Auction')])
+
+    if allList is not None:
+        for auc in allList:
+            layout.append([sg.Text("id: "+ str(auc[0])),sg.Text("title: "+ auc[6]),sg.Text("for Deletion click =>"),sg.Button(str(auc[0]), key= 'Delete Auctions')])
+    
     layout.append([sg.Button('Return to Seller Homepage')])
     return sg.Window("Auction Del", layout)
 
-def button_delete_auction(values):
+def button_delete_auction(idOfAuc):
     global login_user_id
-    sql = """DELETE OR IGNORE FROM AUCTIONS
-      WHERE ID = ?;
-    """
-    data = (int(values['auction_to_delete']),)
+    global window
+    sql = """DELETE FROM AUCTIONS
+      WHERE ID = ?;"""
+    data = (int(idOfAuc),)
     cur.execute(sql, data)
+    window.close()
+    window = seller_delete_auction_window()
 
+def seller_finished_auction_window():
+    global login_user_name
+    global login_user_surname
+    global login_user_id
+    global aucList
+    layout = [[sg.Text(login_user_name + "  " + login_user_surname + "'s Finished Auctions")],
+        [sg.Text('All Finished Auctions:')]]
+
+    sql = """SELECT ID,
+       SSN,
+       IS_ACCEPTED,
+       WHO_ACCEPTED,
+       START_DATE,
+       END_DATE,
+       TITLE,
+       DESCRIPTION,
+       STATUS,
+       START_PRICE,
+       CURRENT_PRICE,
+       BIDDER_SSN,
+       BUY_NOW_PRICE,
+       CATEGORY,
+       IS_FINISHED,
+       IS_RESPONDED
+  FROM AUCTIONS
+  WHERE SSN = ?
+  AND IS_FINISHED = 1
+  AND IS_RESPONDED = 1
+  AND IS_ACCEPTED = 1;""" 
+
+
+    data = (int(login_user_id),)
+    row = cur.execute(sql, data)
+    allList = row.fetchall()
+
+    for auc in allList:
+        layout.append([sg.Text("id: "+ str(auc[0])),sg.Text("show bill of "+ auc[6]),sg.Button(str(auc[0]), key= 'Show Bill')])
+
+    layout.append([sg.Button('Return to Seller Homepage')])
+    return sg.Window("Auction Finished", layout)
+    
+def seller_show_bill_window(idOfAuc):
+    global login_user_name
+    global login_user_surname
+    global window
+    sql = """SELECT ID,
+       SSN,
+       IS_ACCEPTED,
+       WHO_ACCEPTED,
+       START_DATE,
+       END_DATE,
+       TITLE,
+       DESCRIPTION,
+       STATUS,
+       START_PRICE,
+       CURRENT_PRICE,
+       BIDDER_SSN,
+       BUY_NOW_PRICE,
+       CATEGORY,
+       IS_FINISHED,
+       IS_RESPONDED
+  FROM AUCTIONS
+  WHERE ID = ?
+  AND IS_FINISHED = 1;""" 
+    data = (int(idOfAuc),)
+    row = cur.execute(sql, data)
+    info = row.fetchone()
+
+    layout = [[sg.Text(login_user_name + "  " + login_user_surname + "'s Auction")],
+        [sg.Text('ID of Auction: ' + str(info[0]))],
+        [sg.Text('Who accepted Auction: ' + str(info[2]))],
+        [sg.Text('Sold for: ' + str(info[10]))],
+        [sg.Text('Buyer SSN: ' + str(info[11]))],
+        [sg.Text('Tax of Company: ' + str(float(info[10]) * 0.08))],
+        [sg.Button('Return to Seller Homepage')]]
+
+    return sg.Window("Bill Info", layout)
+
+def seller_ongoing_auction_window():
+    global login_user_name
+    global login_user_surname
+    global login_user_id
+    global aucList
+
+    layout = [[sg.Text(login_user_name + "  " + login_user_surname + "'s ongoing auctions")],
+        [sg.Text('All ongoing Auctions:')]]   
+
+    sql = """SELECT ID,
+       SSN,
+       IS_ACCEPTED,
+       WHO_ACCEPTED,
+       START_DATE,
+       END_DATE,
+       TITLE,
+       DESCRIPTION,
+       STATUS,
+       START_PRICE,
+       CURRENT_PRICE,
+       BIDDER_SSN,
+       BUY_NOW_PRICE,
+       CATEGORY,
+       IS_FINISHED,
+       IS_RESPONDED
+  FROM AUCTIONS
+  WHERE SSN = ?
+  AND IS_ACCEPTED = 1
+  AND IS_FINISHED = 0
+  AND IS_RESPONDED = 1;""" 
+    data = (int(login_user_id),)
+    row = cur.execute(sql, data)
+    allList = row.fetchall()
+
+    if allList is not None:
+        for auc in allList:
+            layout.append([sg.Text("**************************")])
+            layout.append([sg.Text("ID: "+ str(auc[0])),
+            sg.Text("TITLE: "+ str(auc[6])),
+            sg.Text("DESCRIPTION: "+ str(auc[7]))])
+            layout.append([sg.Text("Start Date: "+ str(auc[4])),
+            sg.Text("End Date: "+ str(auc[5])),
+            sg.Text("Current Price: "+ str(auc[10])),
+            sg.Text("Current Bidder: "+ str(auc[11]))])
+            layout.append([sg.Text("for Ending click =>"),
+            sg.Button(str(auc[0]), key= 'End Auction')])
+            layout.append([sg.Text("**************************")])
+    
+    layout.append([sg.Button('Return to Seller Homepage')])
+    return sg.Window("Ongoing Auction", layout)
+
+def button_end_auction(idOfAuc):
+    global login_user_id
+    global login_user_name
+    global window
+    sql = """UPDATE AUCTIONS
+   SET IS_FINISHED = 1
+ WHERE ID = ?;"""
+    data = (int(idOfAuc),)
+    cur.execute(sql, data)
+    window.close()
+    window = seller_ongoing_auction_window()
+
+def seller_rejected_auction_window():
+    global login_user_name
+    global login_user_surname
+    global login_user_id
+    global aucList
+    layout = [[sg.Text(login_user_name + "  " + login_user_surname + "'s Finished Auctions")],
+        [sg.Text('All Finished Auctions:')]]
+
+    sql = """SELECT ID,
+       SSN,
+       IS_ACCEPTED,
+       WHO_ACCEPTED,
+       START_DATE,
+       END_DATE,
+       TITLE,
+       DESCRIPTION,
+       STATUS,
+       START_PRICE,
+       CURRENT_PRICE,
+       BIDDER_SSN,
+       BUY_NOW_PRICE,
+       CATEGORY,
+       IS_FINISHED,
+       IS_RESPONDED
+  FROM AUCTIONS
+  WHERE SSN = ?
+  AND IS_RESPONDED = 1
+  AND IS_ACCEPTED = 0;""" 
+
+
+    data = (int(login_user_id),)
+    row = cur.execute(sql, data)
+    allList = row.fetchall()
+
+    for auc in allList:
+        layout.append([sg.Text("id: "+ str(auc[0])),sg.Text("title: "+ auc[6]),sg.Text("Description: "+ auc[6]),sg.Text("REJECTED BY: " + auc[3])])
+    layout.append([sg.Button('Return to Seller Homepage')])
+    return sg.Window("Auction Rejected Page", layout)
 #####################################################################################################
 window = Main()              
 while True:
@@ -277,7 +582,6 @@ while True:
     
     if event == 'To Login':
         set_role(values)
-
     ### Account Creation ###     
     elif event == 'Create Account Window':
         button_to_account_create(values)
@@ -294,7 +598,12 @@ while True:
         login_user_surname= -1
         window.close()
         window = Main()
+    ### User Update ###
+    elif event == 'Update New Password':
+        button_update_password(values)
 
+    elif event == 'Update New IBAN':
+        button_update_iban(values)
     ### Return / Quit ###        
     elif event == 'Return to Main Window':
         login_user_id = -1
@@ -305,7 +614,26 @@ while True:
     elif event == sg.WIN_CLOSED:
         break
 
+    ### Admin Functions ###
+    elif event == 'Return to Admin Homepage':
+        window.close()
+        window = admin_homepage() 
+
+    elif event == 'Auctions To Accept':
+        window.close()
+        window = admin_auctions_to_accept_window() 
+
+    elif event.__contains__('Accept Auction'):
+        button_accept_auction(window[event].get_text()) 
+
+    elif event.__contains__('Deny Auction'):
+        button_deny_auction(window[event].get_text()) 
+
     ### Seller Functions ###
+    elif event == 'Update My Profile':
+        window.close()
+        window = window_user_update() 
+
     elif event == 'Return to Seller Homepage':
         window.close()
         window = seller_homepage() 
@@ -325,8 +653,27 @@ while True:
         window.close()
         window = seller_delete_auction_window()     
 
-    elif event == 'Delete Auction':
-        button_delete_auction(values)      
+    elif event.__contains__('Delete Auctions'):
+        button_delete_auction(window[event].get_text())     
+
+    elif event == 'Finished Auctions Page':
+        window.close()
+        window = seller_finished_auction_window()  
+
+    elif event.__contains__('Show Bill'):
+        window.close()
+        window = seller_show_bill_window(window[event].get_text())  
+
+    elif event == 'Ongoing Auctions Page':
+        window.close()
+        window = seller_ongoing_auction_window() 
+
+    elif event.__contains__('End Auction'):
+        button_end_auction(window[event].get_text())  
+
+    elif event == 'Rejected Auctions Page':
+        window.close()
+        window = seller_rejected_auction_window() 
               
 window.close()
 
